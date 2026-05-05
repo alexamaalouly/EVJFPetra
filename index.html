@@ -250,6 +250,8 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 .ktb-v.vnok{background:var(--rose);border-color:var(--rose);color:white;}
 
 /* Caption vote stars */
+.ct-edit-btn{background:none;border:1px solid var(--line);border-radius:100px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;color:var(--ink-s);transition:all var(--t);}
+.ct-edit-btn:hover{border-color:var(--rose);color:var(--rose);}
 .ct-cap-stars{display:flex;gap:3px;align-items:center;}
 .ct-star{font-size:16px;cursor:pointer;color:var(--line);transition:color var(--t);line-height:1;}
 .ct-star.voted{color:#f4b400;}
@@ -589,7 +591,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       <div class="bingo-win" id="bingo-win">Bingo — Bravo !</div>
       <div class="bingo-grid" id="bingo-board"></div>
       <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-g btn-sm" onclick="resetBingo()">Réinitialiser</button>
+        <button class="btn btn-g btn-sm" onclick="resetMyScore('bingo',resetBingo)">Réinitialiser</button>
         <button class="btn btn-p" style="flex:1" onclick="submitGameScore('bingo',countBingo())">Soumettre mon score</button>
       </div>
       <div class="lb-section"><div class="lb-title">Classement</div><div id="bingo-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
@@ -606,7 +608,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       </div>
       <div id="drink-list"></div>
       <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-g btn-sm" onclick="buildDrink(document.querySelector('.rt.on')?.dataset?.r||1)">Réinitialiser</button>
+        <button class="btn btn-g btn-sm" onclick="resetMyScore('drink',()=>buildDrink(document.querySelector('.rt.on')?.dataset?.r||1))">Réinitialiser</button>
         <button class="btn btn-p" style="flex:1" onclick="submitGameScore('drink',dc)">Soumettre mon score</button>
       </div>
       <div class="lb-section"><div class="lb-title">Classement</div><div id="drink-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
@@ -635,7 +637,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       <p style="font-size:13px;color:var(--ink-s);margin-bottom:14px">Réponds, puis coche vrai/faux lors du débrief oral.</p>
       <div id="ktb-list"></div>
       <div style="display:flex;gap:8px;margin-top:14px">
-        <button class="btn btn-g btn-sm" onclick="buildKtb()">Réinitialiser</button>
+        <button class="btn btn-g btn-sm" onclick="resetMyScore('ktb',buildKtb)">Réinitialiser</button>
         <button class="btn btn-p" style="flex:1" onclick="submitKtb()">Soumettre mon score</button>
       </div>
       <div class="lb-section"><div class="lb-title">Classement</div><div id="ktb-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
@@ -653,7 +655,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       <div id="hunt-list"></div>
       <div class="lb-section"><div class="lb-title">Classement</div><div id="hunt-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
       <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-g btn-sm" onclick="buildHunt();toast('Réinitialisé')">Réinitialiser</button>
+        <button class="btn btn-g btn-sm" onclick="resetMyScore('hunt')">Réinitialiser</button>
         <button class="btn btn-p" style="flex:1" onclick="submitScore('hunt')">Soumettre mon score</button>
       </div>
     </div>
@@ -664,7 +666,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       <div class="purse-items" id="purse-items"></div>
       <div class="lb-section"><div class="lb-title">Classement</div><div id="purse-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
       <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-g btn-sm" onclick="buildPurse();document.getElementById('purse-num').textContent='0';toast('Réinitialisé')">Réinitialiser</button>
+        <button class="btn btn-g btn-sm" onclick="resetMyScore('purse',()=>{buildPurse();document.getElementById('purse-num').textContent='0';})">Réinitialiser</button>
         <button class="btn btn-p" style="flex:1" onclick="submitScore('purse')">Soumettre mon score</button>
       </div>
     </div>
@@ -689,7 +691,6 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
         <input type="text" id="ct-text" placeholder="Ta légende drôle…" maxlength="140">
         <button class="btn btn-p btn-sm" onclick="submitCaption()">Envoyer</button>
       </div>
-      <button class="btn btn-g" style="width:100%;margin-bottom:14px" onclick="document.getElementById('ct-text').value='';document.getElementById('ct-list').innerHTML='<div class=\'ct-empty\'>Liste réinitialisée</div>'">Réinitialiser</button>
 
       <div id="ct-list"><div class="spinner"></div></div>
     </div>
@@ -822,9 +823,20 @@ async function dbUpsert(table, row, conflictCol) {
 /* ══════════════════════════════════
    PLAYER
 ══════════════════════════════════ */
-let player = {prenom:'', nom:'', photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:''};
-let gatePhoto = null; // base64 for local preview
-let gatePhotoBlob = null; // blob for Storage upload
+let player = {prenom:'', nom:'', photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:'', device_id:null};
+let gatePhoto = null;
+let gatePhotoBlob = null;
+
+function getOrCreateDeviceId(){
+  try {
+    let did = localStorage.getItem('petra_device_id');
+    if(!did){
+      did = 'device-' + Math.random().toString(36).substr(2,9) + '-' + Date.now();
+      localStorage.setItem('petra_device_id', did);
+    }
+    return did;
+  } catch(e){ return 'device-' + Date.now(); }
+}
 
 function pName(){return player.prenom+(player.nom?' '+player.nom[0]+'.':'');}
 
@@ -865,7 +877,7 @@ function dataURLtoBlob(dataURL){
 async function enterMinimal(){
   const p = val('g-p');
   if(!p){ toast('Entre au moins ton prénom'); return; }
-  player = {prenom:p, nom:val('g-n'), photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:''};
+  player = {prenom:p, nom:val('g-n'), photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:'', device_id: getOrCreateDeviceId()};
   saveProfileLocal();
   showHome();
   await saveProfileToSupabase();
@@ -883,7 +895,8 @@ async function enter(){
     arr_time: val('g-arr-t'),
     dep_date: val('g-dep-d'),
     dep_time: val('g-dep-t'),
-    note: val('g-note')
+    note: val('g-note'),
+    device_id: getOrCreateDeviceId()
   };
 
   saveProfileLocal();
@@ -942,17 +955,21 @@ function saveProfileLocal(){
 
 async function saveProfileToSupabase(){
   try {
+    const deviceId = player.device_id || getOrCreateDeviceId();
+    player.device_id = deviceId;
+    saveProfileLocal();
+
     let photoUrl = null;
 
-    // Upload new photo to Storage if one was just selected
+    // Upload new photo to Storage using device_id as filename (stable)
     if(gatePhotoBlob && player.prenom){
-      const filename = player.prenom.toLowerCase().replace(/\s/g,'_') + '_' + Date.now() + '.jpg';
+      const filename = deviceId + '.jpg';
       const {error: upErr} = await sb.storage
         .from('avatars')
         .upload(filename, gatePhotoBlob, {upsert: true, contentType: 'image/jpeg'});
       if(!upErr){
         const {data: urlData} = sb.storage.from('avatars').getPublicUrl(filename);
-        photoUrl = urlData.publicUrl;
+        photoUrl = urlData.publicUrl + '?t=' + Date.now();
         player.photo = photoUrl;
         saveProfileLocal();
       }
@@ -960,17 +977,16 @@ async function saveProfileToSupabase(){
       photoUrl = player.photo;
     }
 
-    // Check if profile already exists
-    const {data: existing} = await sb.from('profiles').select('photo_url').eq('prenom', player.prenom).maybeSingle();
-
+    // Check if profile exists by device_id
+    const {data: existing} = await sb.from('profiles').select('id').eq('device_id', deviceId).maybeSingle();
     if(existing){
-      // Update — only update photo if we have a new one
-      const update = {nom: player.nom || null};
+      // Always update prenom/nom — even if changed
+      const update = {prenom: player.prenom, nom: player.nom || null};
       if(photoUrl) update.photo_url = photoUrl;
-      await sb.from('profiles').update(update).eq('prenom', player.prenom);
+      await sb.from('profiles').update(update).eq('device_id', deviceId);
     } else {
-      // Insert new profile
       await sb.from('profiles').insert({
+        device_id: deviceId,
         prenom: player.prenom,
         nom: player.nom || null,
         photo_url: photoUrl
@@ -1020,7 +1036,9 @@ function loadProfileLocal(){
     if(!s) return false;
     const p = JSON.parse(s);
     if(!p.prenom) return false;
-    player = {prenom:'', nom:'', photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:'', ...p};
+    player = {prenom:'', nom:'', photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:'', device_id:null, ...p};
+    // Always ensure device_id exists
+    if(!player.device_id) player.device_id = getOrCreateDeviceId();
     gatePhoto = player.photo;
     return true;
   } catch(e){ return false; }
@@ -1407,6 +1425,18 @@ async function loadScores(game){
   await renderLeaderboard(game);
 }
 
+async function resetMyScore(game, localResetFn){
+  // Delete only MY score from Supabase
+  try {
+    await sb.from('game_scores').delete().eq('game', game).eq('player_name', pName());
+  } catch(e){ console.warn('reset score error:', e); }
+  // Reset local display
+  if(localResetFn) localResetFn();
+  // Refresh leaderboard
+  await renderLeaderboard(game);
+  toast('Ton score a été réinitialisé');
+}
+
 /* ══════════════════════════════════
    GAMES (local — each plays on own phone)
 ══════════════════════════════════ */
@@ -1632,14 +1662,33 @@ function renderCtPhoto(){
 function ctNext(){ ctIdx = (ctIdx + 1) % CAPTION_PHOTOS.length; renderCtPhoto(); }
 function ctPrev(){ ctIdx = (ctIdx - 1 + CAPTION_PHOTOS.length) % CAPTION_PHOTOS.length; renderCtPhoto(); }
 
+function editCaption(itemId, currentText){
+  // Pre-fill the input with current text and delete the old entry on submit
+  const input = document.getElementById('ct-text');
+  input.value = currentText;
+  input.focus();
+  input.dataset.editId = itemId;
+  input.placeholder = 'Modifie ta légende…';
+}
+
 async function submitCaption(){
   const text = document.getElementById('ct-text').value.trim();
   if(!text){ toast('Écris une légende d\'abord !'); return; }
   if(!player.prenom){ toast('Connecte-toi d\'abord'); return; }
   const photoId = CAPTION_PHOTOS[ctIdx].id;
-  const row = { section: 'caption_' + photoId, name: pName(), description: text, created_by: pName() };
-  await dbInsert('list_items', row);
+  const editId = document.getElementById('ct-text').dataset.editId;
+
+  if(editId){
+    // Update existing caption
+    await sb.from('list_items').update({description: text}).eq('id', editId);
+    document.getElementById('ct-text').dataset.editId = '';
+  } else {
+    // New caption
+    const row = { section: 'caption_' + photoId, name: pName(), description: text, created_by: pName() };
+    await dbInsert('list_items', row);
+  }
   document.getElementById('ct-text').value = '';
+  document.getElementById('ct-text').placeholder = 'Ta légende drôle…';
   await loadCaptions();
   toast('Légende ajoutée !');
 }
@@ -1676,15 +1725,19 @@ async function loadCaptions(){
   items.slice().reverse().forEach(item => {
     const vcount = voteCounts[item.id] || 0;
     const iVoted = myVote === item.id;
+    const isMe = item.name === pName();
     const card = document.createElement('div');
     card.className = 'ct-cap-card';
     card.id = 'ctcard-'+item.id;
     card.innerHTML = `<div class="ct-cap-txt">"${h(item.description)}"</div>
       <div class="ct-cap-meta">
         <div class="ct-cap-author">— ${h(item.name)}</div>
-        <div class="ct-cap-stars">
-          <span class="ct-star${iVoted?' voted':''}" onclick="voteCaption('${item.id}','${photoId}',this)" title="Voter pour cette légende">&#9733;</span>
-          <span class="ct-vote-count" id="votes-${item.id}">${vcount > 0 ? vcount : ''}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${isMe ? `<button class="ct-edit-btn" onclick="editCaption('${item.id}','${h(item.description)}')">Modifier</button>` : ''}
+          <div class="ct-cap-stars">
+            <span class="ct-star${iVoted?' voted':''}" onclick="voteCaption('${item.id}','${photoId}',this)" title="Voter">&#9733;</span>
+            <span class="ct-vote-count" id="votes-${item.id}">${vcount > 0 ? vcount : ''}</span>
+          </div>
         </div>
       </div>`;
     el.appendChild(card);
