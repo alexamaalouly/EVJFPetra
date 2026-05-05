@@ -895,10 +895,21 @@ async function loadTribe(){
   const wrap = document.getElementById('tribe-row');
   wrap.innerHTML = '<div class="spinner"></div>';
   let rows = [];
+
+  // Try profiles table first
   try {
     const {data, error} = await sb.from('profiles').select('*').order('created_at');
-    if(!error && data) rows = data;
-  } catch(e){}
+    if(!error && data && data.length) rows = data;
+  } catch(e){ console.warn('profiles table error:', e); }
+
+  // Fallback: try voyage table if profiles is empty
+  if(!rows.length){
+    try {
+      const {data, error} = await sb.from('voyage').select('prenom,nom,photo_url,created_at').order('created_at');
+      if(!error && data && data.length) rows = data;
+    } catch(e){ console.warn('voyage fallback error:', e); }
+  }
+
   wrap.innerHTML = '';
   if(!rows.length){
     wrap.innerHTML = '<div style="font-size:12px;color:var(--ink-s);text-align:center;padding:8px;width:100%">Aucun profil pour l\'instant</div>';
@@ -932,6 +943,8 @@ function loadProfileLocal(){
 window.addEventListener('DOMContentLoaded', () => {
   if(loadProfileLocal()){
     showHome();
+    // Re-sync to Supabase in case profiles table didn't exist yet
+    saveProfileToSupabase();
   }
 });
 
