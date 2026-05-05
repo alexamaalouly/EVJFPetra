@@ -313,7 +313,21 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:white;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:500;z-index:999;transition:transform .32s cubic-bezier(.32,1.2,.64,1);pointer-events:none;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 
-/* BRIDE TRIBE PAGE */
+/* PROFILE PAGE */
+.prof-av-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:24px;}
+.prof-av{width:88px;height:88px;border-radius:50%;border:3px solid var(--rose);background:var(--rose-xl);display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-size:28px;font-weight:700;color:var(--rose);overflow:hidden;margin-bottom:10px;cursor:pointer;}
+.prof-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.prof-av-btn{font-size:12px;color:var(--rose);font-weight:600;cursor:pointer;text-decoration:underline;}
+.prof-section{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--rose);font-weight:600;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line);}
+.prof-section:first-of-type{border-top:none;margin-top:0;}
+
+/* HOME PROFILE CHIP */
+.home-bar{width:100%;max-width:460px;display:flex;justify-content:flex-end;margin-bottom:8px;}
+.home-prof-btn{display:flex;align-items:center;gap:8px;background:white;border:1px solid var(--line);border-radius:100px;padding:6px 14px 6px 6px;cursor:pointer;transition:all var(--t);}
+.home-prof-btn:hover{border-color:var(--rose);}
+.home-prof-av{width:28px;height:28px;border-radius:50%;background:var(--rose-xl);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--rose);overflow:hidden;flex-shrink:0;}
+.home-prof-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.home-prof-name{font-size:12px;font-weight:600;color:var(--ink-m);}
 .tribe-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:4px 0;}
 .tribe-card{display:flex;flex-direction:column;align-items:center;gap:8px;}
 .tribe-card-av{width:72px;height:72px;border-radius:50%;border:2.5px solid var(--line);background:var(--rose-xl);display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-size:20px;font-weight:700;color:var(--rose);overflow:hidden;}
@@ -390,6 +404,12 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 
 <!-- ══ HOME ══ -->
 <div id="screen-home">
+  <div class="home-bar">
+    <div class="home-prof-btn" onclick="openPage('profile')" id="home-prof-btn">
+      <div class="home-prof-av" id="home-prof-av"></div>
+      <span class="home-prof-name" id="home-prof-name">Mon profil</span>
+    </div>
+  </div>
   <div class="home-greet" id="hg">Bienvenue</div>
   <div class="home-title">Petra</div>
   <div class="home-city">Bilbao, España</div>
@@ -418,6 +438,35 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
     <div class="tb-chip" id="tb-chip"></div>
   </div>
   <div class="loading-bar"><div class="loading-bar-inner" id="lbar"></div></div>
+
+  <!-- PROFILE -->
+  <div class="page" id="page-profile">
+    <div class="prof-av-wrap">
+      <div class="prof-av" id="prof-av-display" onclick="document.getElementById('prof-photo-file').click()"></div>
+      <input type="file" id="prof-photo-file" accept="image/*" style="display:none" onchange="previewProfPhoto(this)">
+      <div class="prof-av-btn" onclick="document.getElementById('prof-photo-file').click()">Changer ma photo</div>
+    </div>
+
+    <div class="prof-section">Identité</div>
+    <div class="g2" style="margin-bottom:10px">
+      <div class="field"><label>Prénom</label><input type="text" id="prof-prenom" placeholder="Sophie"></div>
+      <div class="field"><label>Nom</label><input type="text" id="prof-nom" placeholder="Martin"></div>
+    </div>
+
+    <div class="prof-section">Mon vol</div>
+    <div class="g2" style="margin-bottom:10px">
+      <div class="field"><label>Date arrivée</label><input type="date" id="prof-arr-d" min="2026-05-07" max="2026-05-10"></div>
+      <div class="field"><label>Heure arrivée</label><input type="time" id="prof-arr-t"></div>
+    </div>
+    <div class="g2" style="margin-bottom:10px">
+      <div class="field"><label>Date départ</label><input type="date" id="prof-dep-d" min="2026-05-08" max="2026-05-12"></div>
+      <div class="field"><label>Heure départ</label><input type="time" id="prof-dep-t"></div>
+    </div>
+    <div class="field"><label>N° de vol / note</label><input type="text" id="prof-note" placeholder="Vueling VY1234…"></div>
+
+    <button class="btn btn-p" style="width:100%;margin-top:20px" onclick="saveProfile()">Enregistrer</button>
+    <button class="btn btn-g" style="width:100%;margin-top:8px" onclick="disconnectProfile()">Se déconnecter</button>
+  </div>
 
   <!-- BRIDE TRIBE -->
   <div class="page" id="page-tribe">
@@ -874,6 +923,17 @@ function showHome(){
     chip.textContent = pName();
   }
   document.getElementById('pname-badge').textContent=pName();
+  // Update home profile button
+  const profAv = document.getElementById('home-prof-av');
+  const profName = document.getElementById('home-prof-name');
+  if(profName) profName.textContent = player.prenom || 'Mon profil';
+  if(profAv){
+    if(player.photo){
+      profAv.innerHTML = `<img src="${player.photo}" alt="${h(player.prenom)}">`;
+    } else {
+      profAv.textContent = player.prenom ? player.prenom[0].toUpperCase() : '?';
+    }
+  }
 }
 
 function saveProfileLocal(){
@@ -981,7 +1041,7 @@ document.getElementById('g-n').addEventListener('keydown',e=>{if(e.key==='Enter'
 /* ══════════════════════════════════
    NAV
 ══════════════════════════════════ */
-const labels={tribe:'Bride Tribe',modalites:'Modalités',guestbook:'Livre d\'or',timeline:'Programme',jeux:'Jeux',restau:'Restaurants',bars:'Bars',party:'Soirée',places:'À voir',activites:'Activités'};
+const labels={profile:'Mon profil',tribe:'Bride Tribe',modalites:'Modalités',guestbook:'Livre d\'or',timeline:'Programme',jeux:'Jeux',restau:'Restaurants',bars:'Bars',party:'Soirée',places:'À voir',activites:'Activités'};
 let curPage='';
 function switchVoyageTab(tab,btn){
   document.querySelectorAll('.voyage-tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
@@ -1009,6 +1069,7 @@ async function loadPage(id){
   loading(true);
   if(['restau','bars','party','places','activites'].includes(id)) await loadList(id);
   else if(id==='tribe') await loadTribePage();
+  else if(id==='profile') loadProfilePage();
   else if(id==='modalites'){ await loadVoyage(); await loadAirbnb(); }
   else if(id==='guestbook'){
     const nameInp=document.getElementById('gb-name');
@@ -1417,6 +1478,112 @@ function fhunt(f,btn){huntF=f;document.querySelectorAll('.hfb').forEach(b=>b.cla
 
 // PURSE
 function buildPurse(){const g=document.getElementById('purse-items');g.innerHTML='';purseData.forEach(item=>{const d=document.createElement('div');d.className='p-row';d.innerHTML=`<span class="p-n">${h(item.n)}</span><span class="p-p">+${item.p}</span>`;d.onclick=()=>{d.classList.toggle('chk');let t=0;document.querySelectorAll('.p-row.chk').forEach(x=>t+=parseInt(x.querySelector('.p-p').textContent.replace('+','')));document.getElementById('purse-num').textContent=t;};g.appendChild(d);});}
+
+/* ══════════════════════════════════
+   PROFILE PAGE
+══════════════════════════════════ */
+let profPhotoBlob = null;
+let profPhotoPreview = null;
+
+function loadProfilePage(){
+  // Fill form with current player data
+  document.getElementById('prof-prenom').value = player.prenom || '';
+  document.getElementById('prof-nom').value = player.nom || '';
+  document.getElementById('prof-arr-d').value = player.arr_date || '';
+  document.getElementById('prof-arr-t').value = player.arr_time || '';
+  document.getElementById('prof-dep-d').value = player.dep_date || '';
+  document.getElementById('prof-dep-t').value = player.dep_time || '';
+  document.getElementById('prof-note').value = player.note || '';
+  profPhotoBlob = null;
+  profPhotoPreview = null;
+  // Show current avatar
+  const av = document.getElementById('prof-av-display');
+  if(player.photo){
+    av.innerHTML = `<img src="${player.photo}" alt="">`;
+  } else {
+    av.textContent = player.prenom ? player.prenom[0].toUpperCase() : '?';
+    av.style.fontSize = '28px';
+  }
+}
+
+function previewProfPhoto(input){
+  const f = input.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 300;
+      let w = img.width, hh = img.height;
+      if(w > hh){ if(w > max){ hh = hh*(max/w); w = max; }}
+      else { if(hh > max){ w = w*(max/hh); hh = max; }}
+      const c = document.createElement('canvas');
+      c.width = w; c.height = hh;
+      c.getContext('2d').drawImage(img,0,0,w,hh);
+      profPhotoPreview = c.toDataURL('image/jpeg', 0.75);
+      profPhotoBlob = dataURLtoBlob(profPhotoPreview);
+      const av = document.getElementById('prof-av-display');
+      av.innerHTML = `<img src="${profPhotoPreview}" alt="">`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+
+async function saveProfile(){
+  const prenom = document.getElementById('prof-prenom').value.trim();
+  if(!prenom){ toast('Le prénom est requis'); return; }
+  loading(true);
+
+  // If photo changed, swap blobs
+  if(profPhotoBlob){ gatePhotoBlob = profPhotoBlob; }
+  if(profPhotoPreview){ gatePhoto = profPhotoPreview; player.photo = profPhotoPreview; }
+
+  player.prenom = prenom;
+  player.nom = document.getElementById('prof-nom').value.trim() || '';
+  player.arr_date = document.getElementById('prof-arr-d').value;
+  player.arr_time = document.getElementById('prof-arr-t').value;
+  player.dep_date = document.getElementById('prof-dep-d').value;
+  player.dep_time = document.getElementById('prof-dep-t').value;
+  player.note = document.getElementById('prof-note').value.trim();
+
+  saveProfileLocal();
+  await saveProfileToSupabase();
+
+  // Update voyage if travel info
+  if(player.arr_date || player.dep_date){
+    try {
+      await sb.from('voyage').upsert({
+        prenom: player.prenom, nom: player.nom || null,
+        arr_date: player.arr_date || null, arr_time: player.arr_time || null,
+        dep_date: player.dep_date || null, dep_time: player.dep_time || null,
+        note: player.note || null, photo_url: player.photo || null
+      }, {onConflict:'prenom,nom'});
+    } catch(e){}
+  }
+
+  loading(false);
+  showHome();
+  toast('Profil mis à jour !');
+  goHome();
+}
+
+function disconnectProfile(){
+  try { localStorage.removeItem('petra_profile'); } catch(e){}
+  player = {prenom:'', nom:'', photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:''};
+  gatePhoto = null; gatePhotoBlob = null;
+  document.getElementById('screen-home').style.display='none';
+  document.getElementById('app').style.display='none';
+  document.getElementById('gate').style.display='flex';
+  // Reset gate form
+  ['g-p','g-n','g-arr-d','g-arr-t','g-dep-d','g-dep-t','g-note'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('g-photo-prev').classList.remove('show');
+  document.getElementById('g-photo-lbl').classList.remove('has-photo');
+  toast('Déconnecté');
+  goHome();
+}
 
 /* ══════════════════════════════════
    UTILS
