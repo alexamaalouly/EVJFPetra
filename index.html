@@ -884,35 +884,39 @@ async function saveProfileToSupabase(){
   try {
     let photoUrl = null;
 
-    // Upload photo to Storage if available
+    // Upload new photo to Storage if one was just selected
     if(gatePhotoBlob && player.prenom){
       const filename = player.prenom.toLowerCase().replace(/\s/g,'_') + '_' + Date.now() + '.jpg';
-      const {data: upData, error: upErr} = await sb.storage
+      const {error: upErr} = await sb.storage
         .from('avatars')
         .upload(filename, gatePhotoBlob, {upsert: true, contentType: 'image/jpeg'});
       if(!upErr){
         const {data: urlData} = sb.storage.from('avatars').getPublicUrl(filename);
         photoUrl = urlData.publicUrl;
-        // Update local player photo to the Storage URL
         player.photo = photoUrl;
         saveProfileLocal();
-      } else {
-        // Fallback: use base64 if small enough
-        if(gatePhoto && gatePhoto.length < 200000) photoUrl = gatePhoto;
       }
-    } else if(player.photo && player.photo.startsWith('http')) {
-      photoUrl = player.photo; // already a URL from previous session
-    } else if(player.photo && player.photo.length < 200000) {
-      photoUrl = player.photo; // small base64
+    } else if(player.photo && player.photo.startsWith('http')){
+      photoUrl = player.photo;
     }
 
-    const {error} = await sb.from('profiles').upsert({
-      prenom: player.prenom,
-      nom: player.nom || null,
-      photo_url: photoUrl
-    }, {onConflict: 'prenom,nom'});
-    if(error) console.warn('profile upsert error:', error);
-    else if(curPage === 'tribe') loadTribePage();
+    // Check if profile already exists
+    const {data: existing} = await sb.from('profiles').select('photo_url').eq('prenom', player.prenom).maybeSingle();
+
+    if(existing){
+      // Update — only update photo if we have a new one
+      const update = {nom: player.nom || null};
+      if(photoUrl) update.photo_url = photoUrl;
+      await sb.from('profiles').update(update).eq('prenom', player.prenom);
+    } else {
+      // Insert new profile
+      await sb.from('profiles').insert({
+        prenom: player.prenom,
+        nom: player.nom || null,
+        photo_url: photoUrl
+      });
+    }
+    if(curPage === 'tribe') loadTribePage();
   } catch(e){ console.warn('profile save failed:', e); }
 }
 
