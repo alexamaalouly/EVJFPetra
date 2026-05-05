@@ -237,13 +237,27 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 .mem-rev{margin-top:10px;padding:8px 14px;background:var(--rose-xl);color:var(--rose);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all var(--t);}
 .mem-rev:hover{background:var(--rose-l);}
 
-/* KTB */
-.ktb-c{background:white;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:5px;}
+/* KTB correct/wrong */
+.ktb-c{background:white;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:5px;transition:background var(--t);}
+.ktb-c.correct{background:#e8f5e9;border-color:#a5d6a7;}
+.ktb-c.wrong{background:var(--rose-xl);border-color:var(--rose-l);}
 .ktb-q{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-s);margin-bottom:7px;}
-.ktb-i{width:100%;border:none;border-bottom:1.5px solid var(--line);background:transparent;padding:5px 0;font-size:14px;outline:none;color:var(--ink);transition:border-color var(--t);}
+.ktb-i{width:100%;border:none;border-bottom:1.5px solid var(--line);background:transparent;padding:5px 0;font-size:14px;outline:none;color:var(--ink);transition:border-color var(--t);margin-bottom:8px;}
 .ktb-i:focus{border-bottom-color:var(--rose);}
+.ktb-verdict{display:flex;gap:6px;}
+.ktb-v{flex:1;padding:7px 4px;border-radius:8px;border:1.5px solid var(--line);font-size:11px;font-weight:600;cursor:pointer;color:var(--ink-s);background:white;transition:all var(--t);}
+.ktb-v.vok{background:#4caf50;border-color:#4caf50;color:white;}
+.ktb-v.vnok{background:var(--rose);border-color:var(--rose);color:white;}
 
-/* HUNT */
+/* Caption vote stars */
+.ct-cap-stars{display:flex;gap:3px;align-items:center;}
+.ct-star{font-size:16px;cursor:pointer;color:var(--line);transition:color var(--t);line-height:1;}
+.ct-star.voted{color:#f4b400;}
+.ct-vote-count{font-size:11px;color:var(--ink-s);margin-left:4px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:white;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:500;z-index:999;transition:transform .32s cubic-bezier(.32,1.2,.64,1);pointer-events:none;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
 .hunt-total{background:var(--rose);color:white;border-radius:var(--r);padding:14px 18px;text-align:center;font-weight:700;font-size:20px;margin-bottom:12px;}
 .hf{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
 .hfb{padding:7px 12px;border-radius:100px;border:1.5px solid var(--line);font-size:11px;font-weight:600;cursor:pointer;color:var(--ink-s);background:white;transition:all var(--t);}
@@ -522,7 +536,6 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
         <button class="game-btn" onclick="sg('ktb')"><div class="g-marker"></div><div class="g-name">Know The Bride</div><div class="g-hint">Tu la connais ?</div></button>
         <button class="game-btn" onclick="sg('hunt')"><div class="g-marker"></div><div class="g-name">Scavenger Hunt</div><div class="g-hint">Défis dans Bilbao</div></button>
         <button class="game-btn" onclick="sg('purse')"><div class="g-marker"></div><div class="g-name">What's in your purse</div><div class="g-hint">Score ton sac</div></button>
-        <button class="game-btn" onclick="sg('dress')"><div class="g-marker"></div><div class="g-name">Guess the Dress</div><div class="g-hint">Dessine la robe</div></button>
       </div>
     </div>
 
@@ -541,13 +554,16 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       <div class="game-hdr"><button class="game-back" onclick="bg()">&#8592;</button><div class="game-title">Drink If…</div></div>
       <div class="d-bar" id="d-bar">0 verre</div>
       <div class="round-tabs">
-        <button class="rt on" onclick="switchRound(1,this)">Round 1</button>
-        <button class="rt" onclick="switchRound(2,this)">Round 2</button>
-        <button class="rt" onclick="switchRound(3,this)">Round 3</button>
-        <button class="rt" onclick="switchRound(4,this)">Round 4</button>
+        <button class="rt on" data-r="1" onclick="switchRound(1,this)">Round 1</button>
+        <button class="rt" data-r="2" onclick="switchRound(2,this)">Round 2</button>
+        <button class="rt" data-r="3" onclick="switchRound(3,this)">Round 3</button>
+        <button class="rt" data-r="4" onclick="switchRound(4,this)">Round 4</button>
       </div>
       <div id="drink-list"></div>
-      <button class="btn btn-p game-submit-btn" onclick="submitGameScore('drink',dc)">Soumettre mon score</button>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-g btn-sm" onclick="buildDrink(document.querySelector('.rt.on')?.dataset?.r||1)">Réinitialiser</button>
+        <button class="btn btn-p" style="flex:1" onclick="submitGameScore('drink',dc)">Soumettre mon score</button>
+      </div>
       <div class="lb-section"><div class="lb-title">Classement</div><div id="drink-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
     </div>
 
@@ -555,8 +571,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       <div class="game-hdr"><button class="game-back" onclick="bg()">&#8592;</button><div class="game-title">Bride or Groom ?</div></div>
       <p style="font-size:13px;color:var(--ink-s);margin-bottom:14px">Dis qui fait quoi dans le couple !</p>
       <div id="bog-list"></div>
-      <button class="btn btn-p game-submit-btn" onclick="submitGameScore('bog',countBog())">Soumettre mes réponses</button>
-      <div class="lb-section"><div class="lb-title">Classement</div><div id="bog-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
+      <button class="btn btn-g" style="width:100%;margin-top:14px" onclick="buildBog()">Réinitialiser</button>
     </div>
 
     <div id="game-memory" style="display:none">
@@ -567,14 +582,18 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
         <button class="btn btn-p" onclick="addMem()" style="width:100%">Ajouter</button>
       </div>
       <div id="mem-list"></div>
+      <button class="btn btn-g" style="width:100%;margin-top:10px" onclick="document.getElementById('mem-list').innerHTML='';toast('Liste réinitialisée')">Réinitialiser</button>
     </div>
 
     <div id="game-ktb" style="display:none">
       <div class="game-hdr"><button class="game-back" onclick="bg()">&#8592;</button><div class="game-title">Know The Bride</div></div>
-      <p style="font-size:13px;color:var(--ink-s);margin-bottom:14px">Tu la connais vraiment ? Réponds sans tricher.</p>
+      <p style="font-size:13px;color:var(--ink-s);margin-bottom:14px">Réponds, puis coche vrai/faux lors du débrief oral.</p>
       <div id="ktb-list"></div>
-      <button class="btn btn-p game-submit-btn" onclick="submitKtb()">Valider mes réponses</button>
-      <div class="lb-section"><div class="lb-title">Classement (réponses soumises)</div><div id="ktb-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn btn-g btn-sm" onclick="buildKtb()">Réinitialiser</button>
+        <button class="btn btn-p" style="flex:1" onclick="submitKtb()">Soumettre mon score</button>
+      </div>
+      <div class="lb-section"><div class="lb-title">Classement</div><div id="ktb-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
     </div>
 
     <div id="game-hunt" style="display:none">
@@ -588,7 +607,10 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       </div>
       <div id="hunt-list"></div>
       <div class="lb-section"><div class="lb-title">Classement</div><div id="hunt-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
-      <button class="btn btn-p game-submit-btn" onclick="submitScore('hunt')">Soumettre mon score</button>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-g btn-sm" onclick="buildHunt();toast('Réinitialisé')">Réinitialiser</button>
+        <button class="btn btn-p" style="flex:1" onclick="submitScore('hunt')">Soumettre mon score</button>
+      </div>
     </div>
 
     <div id="game-purse" style="display:none">
@@ -596,46 +618,12 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       <div class="purse-score"><div class="purse-num" id="purse-num">0</div><div class="purse-lbl">points</div></div>
       <div class="purse-items" id="purse-items"></div>
       <div class="lb-section"><div class="lb-title">Classement</div><div id="purse-lb"><div class="lb-empty">Aucun score pour l'instant</div></div></div>
-      <button class="btn btn-p game-submit-btn" onclick="submitScore('purse')">Soumettre mon score</button>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-g btn-sm" onclick="buildPurse();document.getElementById('purse-num').textContent='0';toast('Réinitialisé')">Réinitialiser</button>
+        <button class="btn btn-p" style="flex:1" onclick="submitScore('purse')">Soumettre mon score</button>
+      </div>
     </div>
 
-    <div id="game-dress" style="display:none">
-      <div class="game-hdr"><button class="game-back" onclick="bg()">&#8592;</button><div class="game-title">Guess the Dress</div></div>
-      <p style="font-size:13px;color:var(--ink-s);margin-bottom:12px">Colorie et décore la silhouette de la robe de Petra !</p>
-      <div class="cv-wrap">
-        <canvas id="dress-canvas"></canvas>
-        <svg class="silhouette" viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg">
-          <!-- head -->
-          <ellipse cx="100" cy="28" rx="18" ry="22" fill="none" stroke="#C8446A" stroke-width="2"/>
-          <!-- neck -->
-          <line x1="100" y1="50" x2="100" y2="65" stroke="#C8446A" stroke-width="2"/>
-          <!-- shoulders & bodice -->
-          <path d="M60,65 Q50,70 45,85 L50,130 L150,130 L155,85 Q150,70 140,65 Z" fill="none" stroke="#C8446A" stroke-width="2"/>
-          <!-- waist -->
-          <path d="M50,130 Q60,145 65,155 L135,155 Q140,145 150,130" fill="none" stroke="#C8446A" stroke-width="2"/>
-          <!-- skirt -->
-          <path d="M65,155 Q40,200 30,300 L170,300 Q160,200 135,155 Z" fill="none" stroke="#C8446A" stroke-width="2"/>
-          <!-- arms -->
-          <path d="M45,85 Q30,100 28,130" fill="none" stroke="#C8446A" stroke-width="2"/>
-          <path d="M155,85 Q170,100 172,130" fill="none" stroke="#C8446A" stroke-width="2"/>
-        </svg>
-      </div>
-      <div class="color-row">
-        <div class="csw on" style="background:#C8446A" onclick="setCol('#C8446A',this)"></div>
-        <div class="csw" style="background:#F2D0D8" onclick="setCol('#F2D0D8',this)"></div>
-        <div class="csw" style="background:#FFFFFF;border:1.5px solid #ECD8DF" onclick="setCol('#FFFFFF',this)"></div>
-        <div class="csw" style="background:#F5E6D3" onclick="setCol('#F5E6D3',this)"></div>
-        <div class="csw" style="background:#1C0E13" onclick="setCol('#1C0E13',this)"></div>
-        <div class="csw" style="background:#E8D5A3" onclick="setCol('#E8D5A3',this)"></div>
-        <input type="range" id="brush" min="3" max="28" value="8" style="flex:1;accent-color:var(--rose)">
-        <button class="btn btn-g btn-sm" onclick="clearCanvas()">Effacer</button>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:14px">
-        <div class="field" style="flex:1;margin:0"><input type="text" id="dress-auth" placeholder="Ton prénom"></div>
-        <button class="btn btn-p btn-sm" onclick="saveDress()">Sauvegarder</button>
-      </div>
-      <div class="dress-gallery" id="dress-gallery"></div>
-    </div>
 
     <!-- CAPTION THIS -->
     <div id="game-caption" style="display:none">
@@ -656,6 +644,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
         <input type="text" id="ct-text" placeholder="Ta légende drôle…" maxlength="140">
         <button class="btn btn-p btn-sm" onclick="submitCaption()">Envoyer</button>
       </div>
+      <button class="btn btn-g" style="width:100%;margin-bottom:14px" onclick="document.getElementById('ct-text').value='';document.getElementById('ct-list').innerHTML='<div class=\'ct-empty\'>Liste réinitialisée</div>'">Réinitialiser</button>
 
       <div id="ct-list"><div class="spinner"></div></div>
     </div>
@@ -819,12 +808,13 @@ function previewGatePhoto(input){
   reader.readAsDataURL(f);
 }
 
-function enterMinimal(){
+async function enterMinimal(){
   const p = val('g-p');
   if(!p){ toast('Entre au moins ton prénom'); return; }
   player = {prenom:p, nom:val('g-n'), photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:''};
   saveProfileLocal();
   showHome();
+  await saveProfileToSupabase();
 }
 
 async function enter(){
@@ -845,7 +835,10 @@ async function enter(){
   saveProfileLocal();
   showHome();
 
-  // Auto-fill Voyage entry if user provided arrival/departure info
+  // Always save profile so Bride Tribe works
+  await saveProfileToSupabase();
+
+  // Also upsert voyage if travel info provided
   if(player.arr_date || player.dep_date){
     const row = {
       prenom: player.prenom,
@@ -857,7 +850,6 @@ async function enter(){
       note: player.note || null,
       photo_url: player.photo || null
     };
-    // Use upsert to avoid duplicates if user re-enters
     if(sbOnline){
       try {
         await sb.from('voyage').upsert(row, {onConflict:'prenom,nom'});
@@ -884,26 +876,42 @@ function saveProfileLocal(){
   try { localStorage.setItem('petra_profile', JSON.stringify(player)); } catch(e){}
 }
 
+async function saveProfileToSupabase(){
+  if(!sbOnline) return;
+  try {
+    await sb.from('profiles').upsert({
+      prenom: player.prenom,
+      nom: player.nom || null,
+      photo_url: player.photo || null
+    }, {onConflict: 'prenom,nom'});
+    loadTribe();
+  } catch(e){ console.warn('profile save failed', e); }
+}
+
 /* ══════════════════════════════════
    BRIDE TRIBE
 ══════════════════════════════════ */
 async function loadTribe(){
   const wrap = document.getElementById('tribe-row');
   wrap.innerHTML = '<div class="spinner"></div>';
-  const rows = await dbGet('voyage');
+  let rows = [];
+  try {
+    const {data, error} = await sb.from('profiles').select('*').order('created_at');
+    if(!error && data) rows = data;
+  } catch(e){}
   wrap.innerHTML = '';
   if(!rows.length){
-    wrap.innerHTML = '<div style="font-size:12px;color:var(--ink-s);text-align:center;padding:8px">Connecte-toi pour voir la tribu !</div>';
+    wrap.innerHTML = '<div style="font-size:12px;color:var(--ink-s);text-align:center;padding:8px;width:100%">Aucun profil pour l\'instant</div>';
     return;
   }
   rows.forEach(r => {
-    const isMe = r.prenom.toLowerCase() === player.prenom.toLowerCase();
+    const isMe = player.prenom && r.prenom.toLowerCase() === player.prenom.toLowerCase();
     const div = document.createElement('div');
     div.className = 'tribe-member' + (isMe ? ' me' : '');
     const initials = (r.prenom[0] + (r.nom ? r.nom[0] : '')).toUpperCase();
     const avHtml = r.photo_url
       ? `<div class="tribe-av"><img src="${h(r.photo_url)}" alt="${h(r.prenom)}"></div>`
-      : `<div class="tribe-av">${initials}</div>`;
+      : `<div class="tribe-av">${h(initials)}</div>`;
     div.innerHTML = `${avHtml}<div class="tribe-name">${h(r.prenom)}</div>`;
     wrap.appendChild(div);
   });
@@ -1234,11 +1242,9 @@ async function submitGameScore(game, score){
 }
 
 async function submitKtb(){
-  const inputs = document.querySelectorAll('.ktb-i');
-  let filled = 0;
-  inputs.forEach(i => { if(i.value.trim()) filled++; });
-  if(!filled){toast('Réponds à au moins une question');return;}
-  await submitGameScore('ktb', filled);
+  const correct=[...document.querySelectorAll('.ktb-c[data-verdict="ok"]')].length;
+  if(!player.prenom){toast('Connecte-toi d\'abord');return;}
+  await submitGameScore('ktb', correct);
 }
 
 function countBingo(){
@@ -1310,10 +1316,10 @@ const purseData=[{n:'Téléphone',p:1},{n:'Clés',p:1},{n:'Rouge à lèvres',p:3
 const bingoData=['Ne boit pas de café','A voyagé avec la mariée','A un tatouage','Chef d\'entreprise','Dans le cortège','A rencontré quelqu\'un de célèbre','A connu la mariée à l\'école','A voyagé en 3 mois','Porte du noir','A une sœur','La plus jeune','A TikTok','Gauchère','Parle 2 langues','Porte des lunettes','A un master','Née à l\'étranger','Enfant unique','A un chat','Joue d\'un instrument','De la famille','Rouge à lèvres dans le sac','Cheveux attachés','Née en août','PETRA'];
 
 let gamesInited=false;
-function initGames(){if(gamesInited)return;gamesInited=true;buildBingo();buildDrink(1);buildBog();buildKtb();buildHunt();buildPurse();initCanvas();['bingo','drink','bog','ktb','hunt','purse'].forEach(g=>renderLeaderboard(g));}
+function initGames(){if(gamesInited)return;gamesInited=true;buildBingo();buildDrink(1);buildBog();buildKtb();buildHunt();buildPurse();['bingo','drink','ktb','hunt','purse'].forEach(g=>renderLeaderboard(g));}
 
-const allG=['bingo','drink','bog','memory','ktb','hunt','purse','dress','caption'];
-function sg(id){document.getElementById('game-home').style.display='none';allG.forEach(g=>document.getElementById('game-'+g).style.display=g===id?'block':'none');if(['hunt','purse','bingo','drink','bog','ktb'].includes(id))renderLeaderboard(id);if(id==='caption')initCaption();}
+const allG=['bingo','drink','bog','memory','ktb','hunt','purse','caption'];
+function sg(id){document.getElementById('game-home').style.display='none';allG.forEach(g=>document.getElementById('game-'+g).style.display=g===id?'block':'none');if(['hunt','purse','bingo','drink','ktb'].includes(id))renderLeaderboard(id);if(id==='caption')initCaption();}
 function bg(){document.getElementById('game-home').style.display='block';allG.forEach(g=>document.getElementById('game-'+g).style.display='none');}
 
 // BINGO
@@ -1335,7 +1341,32 @@ function addMem(){const a=val('mem-a'),t=val('mem-t');if(!a||!t){toast('Remplis 
 function revealMem(btn){const auth=btn.previousElementSibling.previousElementSibling;auth.textContent=auth.dataset.real;auth.style.color='var(--rose)';btn.style.display='none';}
 
 // KTB
-function buildKtb(){const list=document.getElementById('ktb-list');list.innerHTML='';ktbData.forEach(q=>{const d=document.createElement('div');d.className='ktb-c';d.innerHTML=`<div class="ktb-q">${h(q)}</div><input class="ktb-i" type="text" placeholder="Ta réponse…">`;list.appendChild(d);});}
+function buildKtb(){
+  const list=document.getElementById('ktb-list');list.innerHTML='';
+  ktbData.forEach((q,i)=>{
+    const d=document.createElement('div');d.className='ktb-c';d.dataset.verdict='';
+    d.innerHTML=`<div class="ktb-q">${h(q)}</div>
+      <input class="ktb-i" type="text" placeholder="Ta réponse…">
+      <div class="ktb-verdict">
+        <button class="ktb-v" onclick="setKtbVerdict(this,'ok')">Vrai</button>
+        <button class="ktb-v" onclick="setKtbVerdict(this,'nok')">Faux</button>
+      </div>`;
+    list.appendChild(d);
+  });
+}
+function setKtbVerdict(btn, v){
+  const card=btn.closest('.ktb-c');
+  card.querySelectorAll('.ktb-v').forEach(b=>{b.classList.remove('vok','vnok');});
+  btn.classList.add(v==='ok'?'vok':'vnok');
+  card.classList.toggle('correct',v==='ok');
+  card.classList.toggle('wrong',v==='nok');
+  card.dataset.verdict=v;
+  // auto-update score display
+  const correct=[...document.querySelectorAll('.ktb-c[data-verdict="ok"]')].length;
+  // update submit button label
+  const btn2=document.querySelector('#game-ktb .btn-p');
+  if(btn2) btn2.textContent='Soumettre ('+correct+'/'+ktbData.length+')';
+}
 
 // HUNT
 let huntF='all';
@@ -1345,23 +1376,6 @@ function fhunt(f,btn){huntF=f;document.querySelectorAll('.hfb').forEach(b=>b.cla
 
 // PURSE
 function buildPurse(){const g=document.getElementById('purse-items');g.innerHTML='';purseData.forEach(item=>{const d=document.createElement('div');d.className='p-row';d.innerHTML=`<span class="p-n">${h(item.n)}</span><span class="p-p">+${item.p}</span>`;d.onclick=()=>{d.classList.toggle('chk');let t=0;document.querySelectorAll('.p-row.chk').forEach(x=>t+=parseInt(x.querySelector('.p-p').textContent.replace('+','')));document.getElementById('purse-num').textContent=t;};g.appendChild(d);});}
-
-// CANVAS DRESS
-let cv,ctx2,painting=false,col='#C8446A';
-function initCanvas(){
-  cv=document.getElementById('dress-canvas');
-  const W=cv.parentElement.clientWidth;cv.width=W;cv.height=Math.round(W*1.1);
-  ctx2=cv.getContext('2d');ctx2.fillStyle='#fff';ctx2.fillRect(0,0,cv.width,cv.height);
-  const pos=e=>{const r=cv.getBoundingClientRect();const s=e.touches?e.touches[0]:e;return{x:(s.clientX-r.left)*(cv.width/r.width),y:(s.clientY-r.top)*(cv.height/r.height)};};
-  const start=e=>{e.preventDefault();painting=true;const p=pos(e);ctx2.beginPath();ctx2.moveTo(p.x,p.y);};
-  const draw=e=>{e.preventDefault();if(!painting)return;const p=pos(e);ctx2.strokeStyle=col;ctx2.lineWidth=parseInt(document.getElementById('brush').value);ctx2.lineCap='round';ctx2.lineJoin='round';ctx2.lineTo(p.x,p.y);ctx2.stroke();};
-  const stop=()=>{painting=false;ctx2.beginPath();};
-  cv.addEventListener('mousedown',start);cv.addEventListener('mousemove',draw);cv.addEventListener('mouseup',stop);cv.addEventListener('mouseleave',stop);
-  cv.addEventListener('touchstart',start,{passive:false});cv.addEventListener('touchmove',draw,{passive:false});cv.addEventListener('touchend',stop);
-}
-function setCol(c,el){col=c;document.querySelectorAll('.csw').forEach(s=>s.classList.remove('on'));el.classList.add('on');}
-function clearCanvas(){if(!ctx2)return;ctx2.fillStyle='#fff';ctx2.fillRect(0,0,cv.width,cv.height);}
-function saveDress(){const auth=val('dress-auth')||player.prenom||'Anonyme';const data=cv.toDataURL();const g=document.getElementById('dress-gallery');const d=document.createElement('div');d.className='dg-card';d.innerHTML=`<img src="${data}"><div class="dg-credit">Par ${h(auth)}</div>`;g.appendChild(d);clearCanvas();document.getElementById('dress-auth').value='';toast('Dessin sauvegardé');}
 
 /* ══════════════════════════════════
    UTILS
@@ -1374,7 +1388,8 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 sb.channel('evjf')
   .on('postgres_changes',{event:'*',schema:'public',table:'timeline_events'},()=>{if(curPage==='timeline')loadTimeline();})
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'guestbook'},()=>{if(curPage==='guestbook')loadGb();})
-  .on('postgres_changes',{event:'INSERT',schema:'public',table:'voyage'},()=>{if(curPage==='modalites'){loadVoyage();}loadTribe();})
+  .on('postgres_changes',{event:'*',schema:'public',table:'voyage'},()=>{if(curPage==='modalites'){loadVoyage();}})
+  .on('postgres_changes',{event:'*',schema:'public',table:'profiles'},()=>{loadTribe();})
   .on('postgres_changes',{event:'*',schema:'public',table:'game_scores'},()=>{['bingo','drink','bog','ktb','hunt','purse'].forEach(g=>{const el=document.getElementById(g+'-lb');if(el&&el.closest('#game-'+g)?.style.display!=='none')renderLeaderboard(g);});})
   .subscribe();
 
@@ -1431,15 +1446,61 @@ async function loadCaptions(){
     el.innerHTML = '<div class="ct-empty">Sois la première à légender cette photo !</div>';
     return;
   }
+  // Load votes for this photo
+  let votes = {};
+  try {
+    const {data} = await sb.from('game_scores').select('*').eq('game','caption_votes_'+photoId);
+    if(data) data.forEach(v=>{ votes[v.player_name] = parseInt(v.score)||0; });
+  } catch(e){}
+  // Count votes per caption (score = caption item id encoded)
+  let voteCounts = {};
+  try {
+    const {data} = await sb.from('game_scores').select('*').like('game','capvote_'+photoId+'_%');
+    if(data) data.forEach(v=>{ const cid=v.game.split('_').pop(); voteCounts[cid]=(voteCounts[cid]||0)+1; });
+  } catch(e){}
+  // My vote for this photo
+  let myVote = null;
+  try {
+    const {data} = await sb.from('game_scores').select('*').eq('game','capvote_photo_'+photoId).eq('player_name',pName()).maybeSingle();
+    if(data) myVote = data.score+'';
+  } catch(e){}
+
   items.slice().reverse().forEach(item => {
+    const vcount = voteCounts[item.id] || 0;
+    const iVoted = myVote === item.id;
     const card = document.createElement('div');
     card.className = 'ct-cap-card';
+    card.id = 'ctcard-'+item.id;
     card.innerHTML = `<div class="ct-cap-txt">"${h(item.description)}"</div>
       <div class="ct-cap-meta">
         <div class="ct-cap-author">— ${h(item.name)}</div>
+        <div class="ct-cap-stars">
+          <span class="ct-star${iVoted?' voted':''}" onclick="voteCaption('${item.id}','${photoId}',this)" title="Voter pour cette légende">&#9733;</span>
+          <span class="ct-vote-count" id="votes-${item.id}">${vcount > 0 ? vcount : ''}</span>
+        </div>
       </div>`;
     el.appendChild(card);
   });
+}
+
+async function voteCaption(captionId, photoId, starEl){
+  if(!player.prenom){toast('Connecte-toi d\'abord');return;}
+  const alreadyVoted = starEl.classList.contains('voted');
+  if(alreadyVoted){
+    // Remove vote
+    try{ await sb.from('game_scores').delete().eq('game','capvote_photo_'+photoId).eq('player_name',pName()); }catch(e){}
+    try{ await sb.from('game_scores').delete().eq('game','capvote_'+photoId+'_'+captionId).eq('player_name',pName()); }catch(e){}
+  } else {
+    // Remove old vote for this photo first
+    try{ await sb.from('game_scores').delete().like('game','capvote_'+photoId+'_%').eq('player_name',pName()); }catch(e){}
+    try{ await sb.from('game_scores').delete().eq('game','capvote_photo_'+photoId).eq('player_name',pName()); }catch(e){}
+    // Add new vote — track which caption and which photo
+    try{
+      await sb.from('game_scores').upsert({player_name:pName(),game:'capvote_photo_'+photoId,score:parseInt(captionId)||0},{onConflict:'player_name,game'});
+      await sb.from('game_scores').upsert({player_name:pName(),game:'capvote_'+photoId+'_'+captionId,score:1},{onConflict:'player_name,game'});
+    }catch(e){}
+  }
+  await loadCaptions();
 }
 </script>
 </body>
