@@ -321,7 +321,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 /* LEADERBOARD JEUX */
 .lb-section{margin-top:20px;}
 .lb-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-s);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
-.lb-title::before{content:'🏆';font-size:14px;}
+.lb-title::before{content:'';}
 .lb-empty{text-align:center;padding:16px;color:var(--ink-s);font-size:13px;border:1px dashed var(--line);border-radius:var(--r);}
 .lb-podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;}
 .lb-pod{background:white;border:1px solid var(--line);border-radius:var(--r);padding:10px 8px;text-align:center;}
@@ -357,7 +357,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 
     <div class="g-photo-wrap">
       <label for="g-photo-file" class="g-photo-lbl" id="g-photo-lbl">
-        <span id="g-photo-icon">📷</span>
+        <span id="g-photo-icon"></span>
         <span id="g-photo-text">Ajouter ma photo</span>
       </label>
       <input type="file" id="g-photo-file" accept="image/*" style="display:none" onchange="previewGatePhoto(this)">
@@ -394,7 +394,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
   </div>
 
   <div class="nav-grid">
-    <div class="nav-cell wide" onclick="openPage('modalites')"><div class="nav-dot"></div><div class="nav-txt"><div class="nl">✈️ Modalités</div><div class="ns">Vols mutualisés & logements</div></div></div>
+    <div class="nav-cell wide" onclick="openPage('modalites')"><div class="nav-dot"></div><div class="nav-txt"><div class="nl">Modalités</div><div class="ns">Vols mutualisés & logements</div></div></div>
     <div class="nav-cell wide" onclick="openPage('guestbook')"><div class="nav-dot"></div><div class="nav-txt"><div class="nl">Livre d'or</div><div class="ns">Écrire un mot à Petra</div></div></div>
     <div class="nav-cell wide" onclick="openPage('timeline')"><div class="nav-dot"></div><div class="nav-txt"><div class="nl">Programme</div><div class="ns">Timeline des 3 jours</div></div></div>
     <div class="nav-cell wide" onclick="openPage('jeux')"><div class="nav-dot"></div><div class="nav-txt"><div class="nl">Jeux</div><div class="ns">Bingo, Drink If, Scavenger Hunt…</div></div></div>
@@ -418,8 +418,8 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
   <!-- MODALITES (Vols + Airbnb fusionnés) -->
   <div class="page" id="page-modalites">
     <div class="voyage-tabs">
-      <div class="voyage-tab on" onclick="switchVoyageTab('vols',this)">✈️ Vols</div>
-      <div class="voyage-tab" onclick="switchVoyageTab('logements',this)">🏠 Logements</div>
+      <div class="voyage-tab on" onclick="switchVoyageTab('vols',this)">Vols</div>
+      <div class="voyage-tab" onclick="switchVoyageTab('logements',this)">Logements</div>
     </div>
 
     <!-- Panel Vols -->
@@ -514,6 +514,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       <div class="player-badge">Tu joues en tant que <strong id="pname-badge">—</strong></div>
       <div class="slbl">Choisir un jeu</div>
       <div class="game-grid">
+        <button class="game-btn wide" onclick="sg('caption')" style="grid-column:1/-1"><div class="g-marker"></div><div class="g-name">Caption This !</div><div class="g-hint">Légender les photos de Petra bébé</div></button>
         <button class="game-btn" onclick="sg('bingo')"><div class="g-marker"></div><div class="g-name">Bridal Bingo</div><div class="g-hint">5 en ligne gagne</div></button>
         <button class="game-btn" onclick="sg('drink')"><div class="g-marker"></div><div class="g-name">Drink If…</div><div class="g-hint">4 rounds</div></button>
         <button class="game-btn" onclick="sg('bog')"><div class="g-marker"></div><div class="g-name">Bride or Groom</div><div class="g-hint">Qui fait quoi ?</div></button>
@@ -522,7 +523,6 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
         <button class="game-btn" onclick="sg('hunt')"><div class="g-marker"></div><div class="g-name">Scavenger Hunt</div><div class="g-hint">Défis dans Bilbao</div></button>
         <button class="game-btn" onclick="sg('purse')"><div class="g-marker"></div><div class="g-name">What's in your purse</div><div class="g-hint">Score ton sac</div></button>
         <button class="game-btn" onclick="sg('dress')"><div class="g-marker"></div><div class="g-name">Guess the Dress</div><div class="g-hint">Dessine la robe</div></button>
-        <button class="game-btn wide" onclick="sg('caption')" style="grid-column:1/-1"><div class="g-marker"></div><div class="g-name">📸 Caption This !</div><div class="g-hint">Légende les photos de Petra bébé</div></button>
       </div>
     </div>
 
@@ -639,7 +639,7 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 
     <!-- CAPTION THIS -->
     <div id="game-caption" style="display:none">
-      <div class="game-hdr"><button class="game-back" onclick="bg()">&#8592;</button><div class="game-title">📸 Caption This !</div></div>
+      <div class="game-hdr"><button class="game-back" onclick="bg()">&#8592;</button><div class="game-title">Caption This !</div></div>
       <p style="font-size:13px;color:var(--ink-s);margin-bottom:16px">Propose ta légende la plus drôle pour chaque photo de Petra.</p>
 
       <div class="ct-photo-nav">
@@ -657,7 +657,6 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
         <button class="btn btn-p btn-sm" onclick="submitCaption()">Envoyer</button>
       </div>
 
-      <div class="slbl" id="ct-list-lbl">Les légendes de la tribu</div>
       <div id="ct-list"><div class="spinner"></div></div>
     </div>
   </div>
@@ -1258,7 +1257,7 @@ async function renderLeaderboard(game){
     el.innerHTML = '<div class="lb-empty">Aucun score pour l\'instant</div>';
     return;
   }
-  const medals = ['🥇','🥈','🥉'];
+  const medals = ['1.','2.','3.'];
   let html = '';
   // Podium top 3
   if(rows.length >= 2){
@@ -1404,7 +1403,6 @@ function renderCtPhoto(){
   document.getElementById('ct-img').src = p.src;
   document.getElementById('ct-counter').textContent = 'Photo ' + (ctIdx+1) + ' / ' + CAPTION_PHOTOS.length;
   document.getElementById('ct-text').value = '';
-  document.getElementById('ct-list-lbl').textContent = p.label + ' — légendes de la tribu';
   loadCaptions();
 }
 
@@ -1420,7 +1418,7 @@ async function submitCaption(){
   await dbInsert('list_items', row);
   document.getElementById('ct-text').value = '';
   await loadCaptions();
-  toast('🎉 Légende ajoutée !');
+  toast('Légende ajoutée !');
 }
 
 async function loadCaptions(){
@@ -1430,7 +1428,7 @@ async function loadCaptions(){
   const items = await dbGet('list_items', { section: 'caption_' + photoId });
   el.innerHTML = '';
   if(!items.length){
-    el.innerHTML = '<div class="ct-empty">Sois la première à légender cette photo 😄</div>';
+    el.innerHTML = '<div class="ct-empty">Sois la première à légender cette photo !</div>';
     return;
   }
   items.slice().reverse().forEach(item => {
