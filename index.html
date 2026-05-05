@@ -313,17 +313,14 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:white;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:500;z-index:999;transition:transform .32s cubic-bezier(.32,1.2,.64,1);pointer-events:none;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 
-/* BRIDE TRIBE */
-.tribe-section{width:100%;max-width:460px;margin-bottom:28px;}
-.tribe-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-s);font-weight:600;text-align:center;margin-bottom:16px;}
-.tribe-row{display:flex;justify-content:center;gap:0;overflow-x:auto;padding:4px 0;flex-wrap:wrap;gap:8px;}
-.tribe-member{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;min-width:60px;}
-.tribe-av{width:52px;height:52px;border-radius:50%;border:2.5px solid var(--line);object-fit:cover;background:var(--rose-xl);display:flex;align-items:center;justify-content:center;font-family:'Pinyon Script',cursive;font-size:26px;color:var(--rose);transition:border-color var(--t),transform var(--t);overflow:hidden;}
-.tribe-av img{width:100%;height:100%;object-fit:cover;}
-.tribe-member.me .tribe-av{border-color:var(--rose);}
-.tribe-member:hover .tribe-av{border-color:var(--rose);transform:scale(1.08);}
-.tribe-name{font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.3px;text-align:center;}
-.tribe-member.me .tribe-name{color:var(--rose);}
+/* BRIDE TRIBE PAGE */
+.tribe-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:4px 0;}
+.tribe-card{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.tribe-card-av{width:72px;height:72px;border-radius:50%;border:2.5px solid var(--line);background:var(--rose-xl);display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-size:20px;font-weight:700;color:var(--rose);overflow:hidden;}
+.tribe-card-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.tribe-card.me .tribe-card-av{border-color:var(--rose);}
+.tribe-card-name{font-size:12px;font-weight:600;color:var(--ink-m);text-align:center;}
+.tribe-card.me .tribe-card-name{color:var(--rose);}
 
 /* VOYAGE UNIFIED */
 .voyage-tabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:20px;}
@@ -399,15 +396,8 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
   <div class="home-date">8 — 10 Mai 2026</div>
   <div class="home-rule"></div>
 
-  <!-- BRIDE TRIBE -->
-  <div class="tribe-section">
-    <div class="tribe-title">Bride Tribe</div>
-    <div class="tribe-row" id="tribe-row">
-      <div class="spinner"></div>
-    </div>
-  </div>
-
   <div class="nav-grid">
+    <div class="nav-cell wide" onclick="openPage('tribe')"><div class="nav-dot"></div><div class="nav-txt"><div class="nl">Bride Tribe</div><div class="ns">Les filles du voyage</div></div></div>
     <div class="nav-cell wide" onclick="openPage('modalites')"><div class="nav-dot"></div><div class="nav-txt"><div class="nl">Modalités</div><div class="ns">Vols mutualisés & logements</div></div></div>
     <div class="nav-cell wide" onclick="openPage('guestbook')"><div class="nav-dot"></div><div class="nav-txt"><div class="nl">Livre d'or</div><div class="ns">Écrire un mot à Petra</div></div></div>
     <div class="nav-cell wide" onclick="openPage('timeline')"><div class="nav-dot"></div><div class="nav-txt"><div class="nl">Programme</div><div class="ns">Timeline des 3 jours</div></div></div>
@@ -428,6 +418,12 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
     <div class="tb-chip" id="tb-chip"></div>
   </div>
   <div class="loading-bar"><div class="loading-bar-inner" id="lbar"></div></div>
+
+  <!-- BRIDE TRIBE -->
+  <div class="page" id="page-tribe">
+    <div class="slbl">Les filles du voyage</div>
+    <div class="tribe-grid" id="tribe-page-list"><div class="spinner"></div></div>
+  </div>
 
   <!-- MODALITES (Vols + Airbnb fusionnés) -->
   <div class="page" id="page-modalites">
@@ -778,26 +774,27 @@ async function dbUpsert(table, row, conflictCol) {
    PLAYER
 ══════════════════════════════════ */
 let player = {prenom:'', nom:'', photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:''};
-let gatePhoto = null; // base64 string for the profile photo
+let gatePhoto = null; // base64 for local preview
+let gatePhotoBlob = null; // blob for Storage upload
 
 function pName(){return player.prenom+(player.nom?' '+player.nom[0]+'.':'');}
 
 function previewGatePhoto(input){
   const f = input.files[0];
   if(!f) return;
-  // Compress before storing as base64 to avoid huge payloads
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
     img.onload = () => {
-      const max = 400;
+      const max = 300; // small enough for storage upload
       let w = img.width, hh = img.height;
       if(w > hh){ if(w > max){ hh = hh * (max/w); w = max; }}
       else { if(hh > max){ w = w * (max/hh); hh = max; }}
       const c = document.createElement('canvas');
       c.width = w; c.height = hh;
       c.getContext('2d').drawImage(img, 0, 0, w, hh);
-      gatePhoto = c.toDataURL('image/jpeg', 0.82);
+      gatePhoto = c.toDataURL('image/jpeg', 0.75);
+      gatePhotoBlob = dataURLtoBlob(gatePhoto);
       const prev = document.getElementById('g-photo-prev');
       prev.src = gatePhoto;
       prev.classList.add('show');
@@ -806,6 +803,14 @@ function previewGatePhoto(input){
     img.src = e.target.result;
   };
   reader.readAsDataURL(f);
+}
+
+function dataURLtoBlob(dataURL){
+  const arr = dataURL.split(','), mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]); let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+  return new Blob([u8arr], {type: mime});
 }
 
 async function enterMinimal(){
@@ -869,7 +874,6 @@ function showHome(){
     chip.textContent = pName();
   }
   document.getElementById('pname-badge').textContent=pName();
-  loadTribe();
 }
 
 function saveProfileLocal(){
@@ -877,54 +881,73 @@ function saveProfileLocal(){
 }
 
 async function saveProfileToSupabase(){
-  if(!sbOnline) return;
   try {
-    await sb.from('profiles').upsert({
+    let photoUrl = null;
+
+    // Upload photo to Storage if available
+    if(gatePhotoBlob && player.prenom){
+      const filename = player.prenom.toLowerCase().replace(/\s/g,'_') + '_' + Date.now() + '.jpg';
+      const {data: upData, error: upErr} = await sb.storage
+        .from('avatars')
+        .upload(filename, gatePhotoBlob, {upsert: true, contentType: 'image/jpeg'});
+      if(!upErr){
+        const {data: urlData} = sb.storage.from('avatars').getPublicUrl(filename);
+        photoUrl = urlData.publicUrl;
+        // Update local player photo to the Storage URL
+        player.photo = photoUrl;
+        saveProfileLocal();
+      } else {
+        // Fallback: use base64 if small enough
+        if(gatePhoto && gatePhoto.length < 200000) photoUrl = gatePhoto;
+      }
+    } else if(player.photo && player.photo.startsWith('http')) {
+      photoUrl = player.photo; // already a URL from previous session
+    } else if(player.photo && player.photo.length < 200000) {
+      photoUrl = player.photo; // small base64
+    }
+
+    const {error} = await sb.from('profiles').upsert({
       prenom: player.prenom,
       nom: player.nom || null,
-      photo_url: player.photo || null
+      photo_url: photoUrl
     }, {onConflict: 'prenom,nom'});
-    loadTribe();
-  } catch(e){ console.warn('profile save failed', e); }
+    if(error) console.warn('profile upsert error:', error);
+    else if(curPage === 'tribe') loadTribePage();
+  } catch(e){ console.warn('profile save failed:', e); }
 }
 
 /* ══════════════════════════════════
-   BRIDE TRIBE
+   BRIDE TRIBE PAGE
 ══════════════════════════════════ */
-async function loadTribe(){
-  const wrap = document.getElementById('tribe-row');
-  wrap.innerHTML = '<div class="spinner"></div>';
+async function loadTribePage(){
+  const el = document.getElementById('tribe-page-list');
+  el.innerHTML = '<div class="spinner"></div>';
   let rows = [];
-
-  // Try profiles table first
   try {
     const {data, error} = await sb.from('profiles').select('*').order('created_at');
     if(!error && data && data.length) rows = data;
-  } catch(e){ console.warn('profiles table error:', e); }
-
-  // Fallback: try voyage table if profiles is empty
+  } catch(e){}
   if(!rows.length){
     try {
-      const {data, error} = await sb.from('voyage').select('prenom,nom,photo_url,created_at').order('created_at');
-      if(!error && data && data.length) rows = data;
-    } catch(e){ console.warn('voyage fallback error:', e); }
+      const {data} = await sb.from('voyage').select('prenom,nom,photo_url,created_at').order('created_at');
+      if(data && data.length) rows = data;
+    } catch(e){}
   }
-
-  wrap.innerHTML = '';
+  el.innerHTML = '';
   if(!rows.length){
-    wrap.innerHTML = '<div style="font-size:12px;color:var(--ink-s);text-align:center;padding:8px;width:100%">Aucun profil pour l\'instant</div>';
+    el.innerHTML = '<div class="empty-state">Aucun profil pour l\'instant</div>';
     return;
   }
   rows.forEach(r => {
     const isMe = player.prenom && r.prenom.toLowerCase() === player.prenom.toLowerCase();
     const div = document.createElement('div');
-    div.className = 'tribe-member' + (isMe ? ' me' : '');
+    div.className = 'tribe-card' + (isMe ? ' me' : '');
     const initials = (r.prenom[0] + (r.nom ? r.nom[0] : '')).toUpperCase();
     const avHtml = r.photo_url
-      ? `<div class="tribe-av"><img src="${h(r.photo_url)}" alt="${h(r.prenom)}"></div>`
-      : `<div class="tribe-av">${h(initials)}</div>`;
-    div.innerHTML = `${avHtml}<div class="tribe-name">${h(r.prenom)}</div>`;
-    wrap.appendChild(div);
+      ? `<div class="tribe-card-av"><img src="${h(r.photo_url)}" alt="${h(r.prenom)}"></div>`
+      : `<div class="tribe-card-av">${h(initials)}</div>`;
+    div.innerHTML = `${avHtml}<div class="tribe-card-name">${h(r.prenom)}</div>`;
+    el.appendChild(div);
   });
 }
 function loadProfileLocal(){
@@ -954,7 +977,7 @@ document.getElementById('g-n').addEventListener('keydown',e=>{if(e.key==='Enter'
 /* ══════════════════════════════════
    NAV
 ══════════════════════════════════ */
-const labels={modalites:'Modalités',guestbook:'Livre d\'or',timeline:'Programme',jeux:'Jeux',restau:'Restaurants',bars:'Bars',party:'Soirée',places:'À voir',activites:'Activités'};
+const labels={tribe:'Bride Tribe',modalites:'Modalités',guestbook:'Livre d\'or',timeline:'Programme',jeux:'Jeux',restau:'Restaurants',bars:'Bars',party:'Soirée',places:'À voir',activites:'Activités'};
 let curPage='';
 function switchVoyageTab(tab,btn){
   document.querySelectorAll('.voyage-tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
@@ -981,6 +1004,7 @@ function goHome(){
 async function loadPage(id){
   loading(true);
   if(['restau','bars','party','places','activites'].includes(id)) await loadList(id);
+  else if(id==='tribe') await loadTribePage();
   else if(id==='modalites'){ await loadVoyage(); await loadAirbnb(); }
   else if(id==='guestbook'){
     const nameInp=document.getElementById('gb-name');
@@ -1402,7 +1426,7 @@ sb.channel('evjf')
   .on('postgres_changes',{event:'*',schema:'public',table:'timeline_events'},()=>{if(curPage==='timeline')loadTimeline();})
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'guestbook'},()=>{if(curPage==='guestbook')loadGb();})
   .on('postgres_changes',{event:'*',schema:'public',table:'voyage'},()=>{if(curPage==='modalites'){loadVoyage();}})
-  .on('postgres_changes',{event:'*',schema:'public',table:'profiles'},()=>{loadTribe();})
+  .on('postgres_changes',{event:'*',schema:'public',table:'profiles'},()=>{if(curPage==='tribe')loadTribePage();})
   .on('postgres_changes',{event:'*',schema:'public',table:'game_scores'},()=>{['bingo','drink','bog','ktb','hunt','purse'].forEach(g=>{const el=document.getElementById(g+'-lb');if(el&&el.closest('#game-'+g)?.style.display!=='none')renderLeaderboard(g);});})
   .subscribe();
 
