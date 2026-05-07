@@ -533,9 +533,9 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
   <!-- TIMELINE -->
   <div class="page" id="page-timeline">
     <div class="day-tabs">
-      <div class="day-tab on" onclick="switchDay(0,this)">Jeu 8</div>
-      <div class="day-tab" onclick="switchDay(1,this)">Ven 9</div>
-      <div class="day-tab" onclick="switchDay(2,this)">Sam 10</div>
+      <div class="day-tab on" onclick="switchDay(0,this)">Ven 8</div>
+      <div class="day-tab" onclick="switchDay(1,this)">Sam 9</div>
+      <div class="day-tab" onclick="switchDay(2,this)">Dim 10</div>
     </div>
     <div id="tl-0"></div>
     <div id="tl-1" style="display:none"></div>
@@ -1267,7 +1267,7 @@ async function loadGb(){
    TIMELINE (shared)
 ══════════════════════════════════ */
 const HOURS=Array.from({length:17},(_,i)=>i+8);
-const DAY_NAMES=['Jeudi 8 mai','Vendredi 9 mai','Samedi 10 mai'];
+const DAY_NAMES=['Vendredi 8 mai','Samedi 9 mai','Dimanche 10 mai'];
 let tlItems=[]; // cached list items for modal
 let tlTarget={day:0,slot:0};
 let tlCat='all';
@@ -1569,6 +1569,9 @@ async function saveProfile(){
   if(profPhotoBlob){ gatePhotoBlob = profPhotoBlob; }
   if(profPhotoPreview){ gatePhoto = profPhotoPreview; player.photo = profPhotoPreview; }
 
+  // Capture old display name BEFORE updating
+  const oldName = pName();
+
   player.prenom = prenom;
   player.nom = document.getElementById('prof-nom').value.trim() || '';
   player.arr_date = document.getElementById('prof-arr-d').value;
@@ -1577,8 +1580,21 @@ async function saveProfile(){
   player.dep_time = document.getElementById('prof-dep-t').value;
   player.note = document.getElementById('prof-note').value.trim();
 
+  const newName = pName();
+
   saveProfileLocal();
   await saveProfileToSupabase();
+
+  // Update all game_scores with old name → new name (no duplicates, same player_id logic)
+  if(oldName !== newName && sbOnline){
+    try {
+      await sb.from('game_scores').update({ player_name: newName }).eq('player_name', oldName);
+    } catch(e){ console.warn('game_scores rename failed:', e); }
+  }
+
+  // Update pname badge in games
+  const badge = document.getElementById('pname-badge');
+  if(badge) badge.textContent = newName;
 
   // Update voyage if travel info
   if(player.arr_date || player.dep_date){
