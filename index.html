@@ -399,6 +399,8 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 
     <div><div class="f-lbl">Note (vol, train…)</div><input class="f-inp" id="g-note" placeholder="Vol Vueling VY1234…"></div>
 
+    <div><div class="f-lbl">Mot de passe</div><input class="f-inp" id="g-pwd" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+
     <button class="gate-btn" onclick="enter()">Entrer</button>
     <div class="gate-skip" onclick="enterMinimal()">Compléter plus tard</div>
   </div>
@@ -465,6 +467,10 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
       <div class="field"><label>Heure départ</label><input type="time" id="prof-dep-t"></div>
     </div>
     <div class="field"><label>N° de vol / note</label><input type="text" id="prof-note" placeholder="Vueling VY1234…"></div>
+
+    <div class="prof-section">Mot de passe</div>
+    <div class="field"><label>Nouveau mot de passe</label><input type="password" id="prof-pwd-new" placeholder="Laisser vide pour ne pas changer"></div>
+    <div class="field"><label>Confirmer</label><input type="password" id="prof-pwd-confirm" placeholder="••••••••"></div>
 
     <button class="btn btn-p" style="width:100%;margin-top:20px" onclick="saveProfile()">Enregistrer</button>
     <button class="btn btn-g" style="width:100%;margin-top:8px" onclick="disconnectProfile()">Se déconnecter</button>
@@ -877,15 +883,56 @@ function dataURLtoBlob(dataURL){
 async function enterMinimal(){
   const p = val('g-p');
   if(!p){ toast('Entre au moins ton prénom'); return; }
+  loading(true);
+  const {ok} = await checkPwd(p, val('g-n'), val('g-pwd'));
+  loading(false);
+  if(!ok){ toast('Mot de passe incorrect'); return; }
   player = {prenom:p, nom:val('g-n'), photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:'', device_id: getOrCreateDeviceId()};
   saveProfileLocal();
   showHome();
   await saveProfileToSupabase();
 }
 
+const GATE_PWD = 'Petra26!';
+
+async function checkPwd(prenom, nom, pwd){
+  if(pwd === GATE_PWD) return {ok:true, profile:null}; // master password always works
+  // Try personal password via Supabase
+  try {
+    const {data} = await sb.from('profiles')
+      .select('*')
+      .ilike('prenom', prenom)
+      .ilike('nom', nom || '')
+      .maybeSingle();
+    if(data && data.pwd === pwd) return {ok:true, profile:data};
+  } catch(e){}
+  return {ok:false, profile:null};
+}
+
 async function enter(){
   const p = val('g-p');
   if(!p){ toast('Entre ton prénom'); return; }
+  const pwd = val('g-pwd');
+  if(!pwd){ toast('Entre le mot de passe'); return; }
+  loading(true);
+  const {ok, profile} = await checkPwd(p, val('g-n'), pwd);
+  loading(false);
+  if(!ok){ toast('Mot de passe incorrect'); return; }
+  // If found existing profile in Supabase, restore it
+  if(profile){
+    player = {
+      prenom: profile.prenom, nom: profile.nom || '',
+      photo: profile.photo_url || null, pwd: profile.pwd || GATE_PWD,
+      device_id: profile.device_id || getOrCreateDeviceId(),
+      arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:''
+    };
+    gatePhoto = player.photo;
+    // Restore device_id in localStorage so future visits skip gate
+    try { localStorage.setItem('petra_device_id', player.device_id); } catch(e){}
+    saveProfileLocal();
+    showHome();
+    return;
+  }
 
   player = {
     prenom: p,
@@ -926,6 +973,7 @@ async function enter(){
 }
 
 function showHome(){
+  try { localStorage.setItem('petra_auth', 'ok'); } catch(e){}
   document.getElementById('gate').style.display='none';
   document.getElementById('screen-home').style.display='flex';
   document.getElementById('hg').textContent='Bienvenue, '+player.prenom+' !';
@@ -983,13 +1031,15 @@ async function saveProfileToSupabase(){
       // Always update prenom/nom — even if changed
       const update = {prenom: player.prenom, nom: player.nom || null};
       if(photoUrl) update.photo_url = photoUrl;
+      if(player.pwd) update.pwd = player.pwd;
       await sb.from('profiles').update(update).eq('device_id', deviceId);
     } else {
       await sb.from('profiles').insert({
         device_id: deviceId,
         prenom: player.prenom,
         nom: player.nom || null,
-        photo_url: photoUrl
+        photo_url: photoUrl,
+        pwd: player.pwd || 'Petra26!'
       });
     }
     if(curPage === 'tribe') loadTribePage();
@@ -1045,10 +1095,20 @@ function loadProfileLocal(){
 }
 
 // Auto-restore profile on load
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   if(loadProfileLocal()){
     showHome();
-    // Re-sync to Supabase in case profiles table didn't exist yet
+    // Try to refresh profile from Supabase (picks up name changes from other devices)
+    try {
+      const {data} = await sb.from('profiles').select('*').eq('device_id', player.device_id).maybeSingle();
+      if(data){
+        player.prenom = data.prenom || player.prenom;
+        player.nom = data.nom || player.nom;
+        if(data.photo_url) player.photo = data.photo_url;
+        saveProfileLocal();
+        showHome(); // refresh chip with updated name/photo
+      }
+    } catch(e){}
     saveProfileToSupabase();
   }
 });
@@ -1524,6 +1584,8 @@ function loadProfilePage(){
   document.getElementById('prof-dep-d').value = player.dep_date || '';
   document.getElementById('prof-dep-t').value = player.dep_time || '';
   document.getElementById('prof-note').value = player.note || '';
+  document.getElementById('prof-pwd-new').value = '';
+  document.getElementById('prof-pwd-confirm').value = '';
   profPhotoBlob = null;
   profPhotoPreview = null;
   // Show current avatar
@@ -1580,6 +1642,15 @@ async function saveProfile(){
   player.dep_time = document.getElementById('prof-dep-t').value;
   player.note = document.getElementById('prof-note').value.trim();
 
+  // Password change
+  const newPwd = document.getElementById('prof-pwd-new').value;
+  const confirmPwd = document.getElementById('prof-pwd-confirm').value;
+  if(newPwd){
+    if(newPwd.length < 4){ loading(false); toast('Mot de passe trop court (min 4 caractères)'); return; }
+    if(newPwd !== confirmPwd){ loading(false); toast('Les mots de passe ne correspondent pas'); return; }
+    player.pwd = newPwd;
+  }
+
   const newName = pName();
 
   saveProfileLocal();
@@ -1615,7 +1686,7 @@ async function saveProfile(){
 }
 
 function disconnectProfile(){
-  try { localStorage.removeItem('petra_profile'); } catch(e){}
+  try { localStorage.removeItem('petra_profile'); localStorage.removeItem('petra_auth'); } catch(e){}
   player = {prenom:'', nom:'', photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:''};
   gatePhoto = null; gatePhotoBlob = null;
   document.getElementById('screen-home').style.display='none';
