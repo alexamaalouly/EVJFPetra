@@ -379,30 +379,11 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
   <div class="gate-rule"></div>
   <div class="gate-sub">EVJF · Bilbao · 8–10 Mai 2026</div>
   <div class="gate-form">
-    <div><div class="f-lbl">Ton prénom</div><input class="f-inp" id="g-p" placeholder="Sophie…" autocomplete="given-name"></div>
-    <div><div class="f-lbl">Ton nom</div><input class="f-inp" id="g-n" placeholder="Martin…" autocomplete="family-name"></div>
-
-    <div class="g-photo-wrap">
-      <label for="g-photo-file" class="g-photo-lbl" id="g-photo-lbl">
-        <span id="g-photo-icon"></span>
-        <span id="g-photo-text">Ajouter ma photo</span>
-      </label>
-      <input type="file" id="g-photo-file" accept="image/*" style="display:none" onchange="previewGatePhoto(this)">
-      <img id="g-photo-prev" alt="">
-    </div>
-
-    <div class="g-section">Mon arrivée à Bilbao</div>
-    <div class="g2"><div><div class="f-lbl">Jour</div><input class="f-inp" type="date" id="g-arr-d" min="2026-05-07" max="2026-05-10"></div><div><div class="f-lbl">Heure</div><input class="f-inp" type="time" id="g-arr-t"></div></div>
-
-    <div class="g-section">Mon départ</div>
-    <div class="g2"><div><div class="f-lbl">Jour</div><input class="f-inp" type="date" id="g-dep-d" min="2026-05-08" max="2026-05-12"></div><div><div class="f-lbl">Heure</div><input class="f-inp" type="time" id="g-dep-t"></div></div>
-
-    <div><div class="f-lbl">Note (vol, train…)</div><input class="f-inp" id="g-note" placeholder="Vol Vueling VY1234…"></div>
-
-    <div><div class="f-lbl">Mot de passe</div><input class="f-inp" id="g-pwd" type="password" placeholder="••••••••" autocomplete="current-password"></div>
-
-    <button class="gate-btn" onclick="enter()">Entrer</button>
-    <div class="gate-skip" onclick="enterMinimal()">Compléter plus tard</div>
+    <div><div class="f-lbl">Prénom</div><input class="f-inp" id="g-p" placeholder="Sophie…" autocomplete="given-name" onkeydown="if(event.key==='Enter')document.getElementById('g-n').focus()"></div>
+    <div><div class="f-lbl">Nom</div><input class="f-inp" id="g-n" placeholder="Martin…" autocomplete="family-name" onkeydown="if(event.key==='Enter')document.getElementById('g-pwd').focus()"></div>
+    <div><div class="f-lbl">Mot de passe</div><input class="f-inp" id="g-pwd" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')enter()"></div>
+    <button class="gate-btn" onclick="enter()">Se connecter</button>
+    <div id="gate-error" style="text-align:center;font-size:12px;color:#c0415a;min-height:18px;margin-top:4px;"></div>
   </div>
 </div>
 
@@ -480,12 +461,13 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
 
   <!-- MODALITES (Vols + Airbnb fusionnés) -->
   <div class="page" id="page-modalites">
+
+
+    <!-- Panel Vols -->
     <div class="voyage-tabs">
       <div class="voyage-tab on" onclick="switchVoyageTab('vols',this)">Vols</div>
       <div class="voyage-tab" onclick="switchVoyageTab('logements',this)">Logements</div>
     </div>
-
-    <!-- Panel Vols -->
     <div class="voyage-panel active" id="vpanel-vols">
       <div class="v-form">
         <h4>Mon vol</h4>
@@ -876,18 +858,7 @@ function dataURLtoBlob(dataURL){
   return new Blob([u8arr], {type: mime});
 }
 
-async function enterMinimal(){
-  const p = val('g-p');
-  if(!p){ toast('Entre au moins ton prénom'); return; }
-  loading(true);
-  const {ok} = await checkPwd(p, val('g-n'), val('g-pwd'));
-  loading(false);
-  if(!ok){ toast('Mot de passe incorrect'); return; }
-  player = {prenom:p, nom:val('g-n'), photo:null, arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:'', device_id: getOrCreateDeviceId()};
-  saveProfileLocal();
-  showHome();
-  await saveProfileToSupabase();
-}
+async function enterMinimal(){ toast("Connexion requise"); }
 
 const GATE_PWD = 'Petra26!';
 
@@ -915,65 +886,27 @@ async function checkPwd(prenom, nom, pwd){
 
 async function enter(){
   const p = val('g-p');
-  if(!p){ toast('Entre ton prénom'); return; }
+  const errEl = document.getElementById('gate-error');
+  errEl.textContent = '';
+  if(!p){ errEl.textContent = 'Entre ton prénom'; return; }
   const pwd = val('g-pwd');
-  if(!pwd){ toast('Entre le mot de passe'); return; }
+  if(!pwd){ errEl.textContent = 'Entre le mot de passe'; return; }
   loading(true);
   const {ok, profile} = await checkPwd(p, val('g-n'), pwd);
   loading(false);
-  if(!ok){ toast('Mot de passe incorrect'); return; }
-  // If found existing profile in Supabase, restore it
-  if(profile){
-    player = {
-      prenom: profile.prenom, nom: profile.nom || '',
-      photo: profile.photo_url || null, pwd: profile.pwd || GATE_PWD,
-      device_id: profile.device_id || getOrCreateDeviceId(),
-      arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:''
-    };
-    gatePhoto = player.photo;
-    // Restore device_id in localStorage so future visits skip gate
-    try { localStorage.setItem('petra_device_id', player.device_id); } catch(e){}
-    saveProfileLocal();
-    showHome();
-    return;
-  }
-
+  if(!ok){ errEl.textContent = 'Identifiants incorrects — contacte Lexou'; return; }
+  if(!profile){ errEl.textContent = 'Compte introuvable — contacte Lexou'; return; }
+  // Restore existing profile
   player = {
-    prenom: p,
-    nom: val('g-n'),
-    photo: gatePhoto,
-    arr_date: val('g-arr-d'),
-    arr_time: val('g-arr-t'),
-    dep_date: val('g-dep-d'),
-    dep_time: val('g-dep-t'),
-    note: val('g-note'),
-    device_id: getOrCreateDeviceId()
+    prenom: profile.prenom, nom: profile.nom || '',
+    photo: profile.photo_url || null, pwd: profile.pwd || GATE_PWD,
+    device_id: profile.device_id,
+    arr_date:'', arr_time:'', dep_date:'', dep_time:'', note:''
   };
-
+  gatePhoto = player.photo;
+  try { localStorage.setItem('petra_device_id', player.device_id); } catch(e){}
   saveProfileLocal();
   showHome();
-
-  // Always save profile so Bride Tribe works
-  await saveProfileToSupabase();
-
-  // Also upsert voyage if travel info provided
-  if(player.arr_date || player.dep_date){
-    const row = {
-      prenom: player.prenom,
-      nom: player.nom || null,
-      arr_date: player.arr_date || null,
-      arr_time: player.arr_time || null,
-      dep_date: player.dep_date || null,
-      dep_time: player.dep_time || null,
-      note: player.note || null,
-      photo_url: player.photo || null
-    };
-    if(sbOnline){
-      try {
-        await sb.from('voyage').upsert(row, {onConflict:'prenom,nom'});
-      } catch(e){ console.warn('voyage upsert failed', e); }
-    }
-  }
 }
 
 function showHome(){
@@ -1029,23 +962,12 @@ async function saveProfileToSupabase(){
       photoUrl = player.photo;
     }
 
-    // Check if profile exists by device_id
-    const {data: existing} = await sb.from('profiles').select('id').eq('device_id', deviceId).maybeSingle();
-    if(existing){
-      // Always update prenom/nom — even if changed
-      const update = {prenom: player.prenom, nom: player.nom || null};
-      if(photoUrl) update.photo_url = photoUrl;
-      if(player.pwd) update.pwd = player.pwd;
+    // UPDATE only — no INSERT allowed (list is locked)
+    const update = {prenom: player.prenom, nom: player.nom || null};
+    if(photoUrl) update.photo_url = photoUrl;
+    try {
       await sb.from('profiles').update(update).eq('device_id', deviceId);
-    } else {
-      await sb.from('profiles').insert({
-        device_id: deviceId,
-        prenom: player.prenom,
-        nom: player.nom || null,
-        photo_url: photoUrl,
-        pwd: player.pwd || 'Petra26!'
-      });
-    }
+    } catch(e){ console.warn('profile update failed', e); }
     if(curPage === 'tribe') loadTribePage();
   } catch(e){ console.warn('profile save failed:', e); }
 }
