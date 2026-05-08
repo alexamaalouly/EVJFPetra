@@ -468,10 +468,6 @@ input,textarea,button,select{font-family:'Outfit',sans-serif;}
     </div>
     <div class="field"><label>N° de vol / note</label><input type="text" id="prof-note" placeholder="Vueling VY1234…"></div>
 
-    <div class="prof-section">Mot de passe</div>
-    <div class="field"><label>Nouveau mot de passe</label><input type="password" id="prof-pwd-new" placeholder="Laisser vide pour ne pas changer"></div>
-    <div class="field"><label>Confirmer</label><input type="password" id="prof-pwd-confirm" placeholder="••••••••"></div>
-
     <button class="btn btn-p" style="width:100%;margin-top:20px" onclick="saveProfile()">Enregistrer</button>
     <button class="btn btn-g" style="width:100%;margin-top:8px" onclick="disconnectProfile()">Se déconnecter</button>
   </div>
@@ -896,16 +892,24 @@ async function enterMinimal(){
 const GATE_PWD = 'Petra26!';
 
 async function checkPwd(prenom, nom, pwd){
-  if(pwd === GATE_PWD) return {ok:true, profile:null}; // master password always works
-  // Try personal password via Supabase
+  // Always look up existing profile first (by prenom+nom)
   try {
-    const {data} = await sb.from('profiles')
-      .select('*')
-      .ilike('prenom', prenom)
-      .ilike('nom', nom || '')
-      .maybeSingle();
-    if(data && data.pwd === pwd) return {ok:true, profile:data};
-  } catch(e){}
+    const q = sb.from('profiles').select('*').ilike('prenom', prenom);
+    const nomVal = nom ? nom.trim() : '';
+    const {data} = nomVal
+      ? await q.ilike('nom', nomVal).maybeSingle()
+      : await q.is('nom', null).maybeSingle();
+    if(data){
+      // Check password: master pwd OR personal pwd
+      if(pwd === GATE_PWD || data.pwd === pwd){
+        return {ok:true, profile:data}; // found + correct pwd → restore profile
+      } else {
+        return {ok:false, profile:null}; // found but wrong pwd
+      }
+    }
+  } catch(e){ console.warn('checkPwd lookup failed', e); }
+  // No profile found → accept master pwd to create new account
+  if(pwd === GATE_PWD) return {ok:true, profile:null};
   return {ok:false, profile:null};
 }
 
@@ -1584,8 +1588,6 @@ function loadProfilePage(){
   document.getElementById('prof-dep-d').value = player.dep_date || '';
   document.getElementById('prof-dep-t').value = player.dep_time || '';
   document.getElementById('prof-note').value = player.note || '';
-  document.getElementById('prof-pwd-new').value = '';
-  document.getElementById('prof-pwd-confirm').value = '';
   profPhotoBlob = null;
   profPhotoPreview = null;
   // Show current avatar
@@ -1641,15 +1643,6 @@ async function saveProfile(){
   player.dep_date = document.getElementById('prof-dep-d').value;
   player.dep_time = document.getElementById('prof-dep-t').value;
   player.note = document.getElementById('prof-note').value.trim();
-
-  // Password change
-  const newPwd = document.getElementById('prof-pwd-new').value;
-  const confirmPwd = document.getElementById('prof-pwd-confirm').value;
-  if(newPwd){
-    if(newPwd.length < 4){ loading(false); toast('Mot de passe trop court (min 4 caractères)'); return; }
-    if(newPwd !== confirmPwd){ loading(false); toast('Les mots de passe ne correspondent pas'); return; }
-    player.pwd = newPwd;
-  }
 
   const newName = pName();
 
